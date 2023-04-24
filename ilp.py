@@ -56,8 +56,8 @@ def simplex(T):
         u = T[1:, j]
         positive_u = np.nonzero(u > 0)[0]
         if positive_u.size == 0:
-            print("The problem is unbounded")
-            break
+            # print("The problem is unbounded")
+            return -1
 
         # Find the minimum ratio
         # avoid division by zero
@@ -74,12 +74,49 @@ def simplex(T):
         pivot_row(T, l, j)
         print(T)
 
+    return 0
+
+
+def generate_solution(T):
+    m = T.shape[0] - 1
+    n = T.shape[1] - T.shape[0]
+
+    x = np.zeros(n + m)
+    I = np.eye(m)
+
+    for i in range(m):
+        for j in range(1, n + m + 1):
+            if np.array_equal(I[:, i], T[1:, j]):
+                x[j - 1] = T[i + 1, 0]
+                break
+
+    return x
+
+
+def check_integer(T):
+    sol = generate_solution(T)
+    # check if every value of sol is an integer or not
+    floor_sol = np.floor(sol)
+    if np.isclose(sol, floor_sol).all():
+        return True, floor_sol
+    return False, None
+
 
 def gomory(filename):
     n, m, b, c, A = readInput(filename)
     T = initialTableau(n, m, b, c, A)
     print(T)
-    simplex(T)
+    status = simplex(T)
+    if status == -1:
+        print("The problem is unbounded")
+        return
+
+    # Check if the solution is integer
+    is_integer, sol = check_integer(T)
+    if is_integer:
+        print("The solution is integer")
+        print("The solution is: ", sol)
+        return
 
 
 if __name__ == "__main__":
