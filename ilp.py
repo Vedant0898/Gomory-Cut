@@ -16,7 +16,7 @@ def readInput(filename):
 
     # Read c vector
     c = [int(x) for x in lines[2].split()]
-    c = np.array(c)
+    c = -np.array(c)
 
     # Read A matrix
     A = []
@@ -70,7 +70,15 @@ def simplex(T):
                 ratios[i] = np.inf
 
         l = 1 + np.argmin(ratios)
-        print("pivot row: ", l, "pivot column: ", j)
+        print(
+            "pivot row: ",
+            l,
+            "pivot column: ",
+            j,
+            "pivot element: ",
+            round(T[l, j], 3),
+            "\n",
+        )
         pivot_row(T, l, j)
         print(T)
 
@@ -120,4 +128,4 @@ def gomory(filename):
 
 
 if __name__ == "__main__":
-    gomory("Inputs/b.txt")
+    gomory("Inputs/c.txt")
