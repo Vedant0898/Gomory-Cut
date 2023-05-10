@@ -84,6 +84,25 @@ def simplex(T):
 
     return 0
 
+def dualSimplex(T):
+    while(np.nonzero(T[1:,0]<0)[0].size>0):
+        i=1+np.nonzero(T[1:,0]<0)[0][0]
+        u=T[i,1:]
+        negative_u=np.nonzero(u<0)[0]
+        if negative_u.size==0:
+            print("The problem is unbounded")
+            return -1
+        ratios=np.zeros(u.size)
+        for j in range(u.size):
+            if u[j]<0:
+                ratios[j]=T[0,j+1]/u[j]
+            else:
+                ratios[j]=-np.inf
+        k=1+np.argmax(ratios)
+        print("pivot row: ",i,"pivot column: ",k)
+        pivot_row(T,i,k)
+        print(T)
+
 
 def generate_solution(T):
     m = T.shape[0] - 1
@@ -109,6 +128,19 @@ def check_integer(T):
         return True, floor_sol
     return False, None
 
+def gomoryCut(T):
+    m = T.shape[0] - 1
+    n = T.shape[1] - T.shape[0]
+    for i in range(1,m+1):
+        temp=np.zeros(n+m+1)
+        for j in range(n+m+1):
+            temp[j]=np.floor(T[i,j])-T[i,j]
+        if(np.nonzero(temp<0)[0].size>0):
+            T=np.vstack((T,temp))
+            T=np.hstack(T,np.zeros((T.shape[0],1)))
+            T[-1,-1]=1
+            return T
+    
 
 def gomory(filename):
     n, m, b, c, A = readInput(filename)
@@ -125,6 +157,8 @@ def gomory(filename):
         print("The solution is integer")
         print("The solution is: ", sol)
         return
+    
+    T=gomoryCut(T)
 
 
 if __name__ == "__main__":
