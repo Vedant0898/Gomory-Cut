@@ -1,6 +1,6 @@
 import numpy as np
 
-np.set_printoptions(precision=3)
+np.set_printoptions(precision=3, suppress=True)
 
 
 def readInput(filename):
@@ -57,7 +57,7 @@ def simplex(T):
         positive_u = np.nonzero(u > 0)[0]
         if positive_u.size == 0:
             # print("The problem is unbounded")
-            return -1
+            return -1, None
 
         # Find the minimum ratio
         # avoid division by zero
@@ -80,28 +80,43 @@ def simplex(T):
             "\n",
         )
         pivot_row(T, l, j)
-        print(T)
 
-    return 0
+    T = T + 0.0  # convert -0.0 to 0.0
+    print(T)
+    return 0, T
+
 
 def dualSimplex(T):
-    while(np.nonzero(T[1:,0]<0)[0].size>0):
-        i=1+np.nonzero(T[1:,0]<0)[0][0]
-        u=T[i,1:]
-        negative_u=np.nonzero(u<0)[0]
-        if negative_u.size==0:
-            print("The problem is unbounded")
-            return -1
-        ratios=np.zeros(u.size)
+    while np.nonzero(T[1:, 0] < 0)[0].size > 0:
+        i = 1 + np.nonzero(T[1:, 0] < 0)[0][0]
+        u = T[i, 1:]
+        negative_u = np.nonzero(u < 0)[0]
+        if negative_u.size == 0:
+            # print("The problem is unbounded")
+            return -1, None
+
+        ratios = np.zeros(u.size)
         for j in range(u.size):
-            if u[j]<0:
-                ratios[j]=T[0,j+1]/u[j]
+            if u[j] < 0:
+                ratios[j] = T[0, j + 1] / u[j]
             else:
-                ratios[j]=-np.inf
-        k=1+np.argmax(ratios)
-        print("pivot row: ",i,"pivot column: ",k)
-        pivot_row(T,i,k)
-        print(T)
+                ratios[j] = -np.inf
+
+        k = 1 + np.argmax(ratios)
+        print(
+            "pivot row: ",
+            i,
+            "pivot column: ",
+            i,
+            "pivot element: ",
+            round(T[i, k], 3),
+            "\n",
+        )
+        pivot_row(T, i, k)
+
+    T = T + 0.0  # convert -0.0 to 0.0
+    print(T)
+    return 0, T
 
 
 def generate_solution(T):
@@ -123,42 +138,63 @@ def generate_solution(T):
 def check_integer(T):
     sol = generate_solution(T)
     # check if every value of sol is an integer or not
-    floor_sol = np.floor(sol)
+    floor_sol = np.round(sol)
     if np.isclose(sol, floor_sol).all():
         return True, floor_sol
     return False, None
 
+
 def gomoryCut(T):
     m = T.shape[0] - 1
-    n = T.shape[1] - T.shape[0]
-    for i in range(1,m+1):
-        temp=np.zeros(n+m+1)
-        for j in range(n+m+1):
-            temp[j]=np.floor(T[i,j])-T[i,j]
-        if(np.nonzero(temp<0)[0].size>0):
-            T=np.vstack((T,temp))
-            T=np.hstack(T,np.zeros((T.shape[0],1)))
-            T[-1,-1]=1
+    # n = T.shape[1] - T.shape[0]
+    # c = T.shape[1]
+    for i in range(0, m + 1):
+        # temp = np.zeros(c)
+        # for j in range(n + m + 1):
+        #     temp[j] = np.floor(T[i, j]) - T[i, j]
+        temp = np.floor(T[i, :]) - T[i, :]
+        if not np.isclose(temp, np.round(temp)).all():
+            T = np.vstack((T, temp))
+            T = np.hstack((T, np.zeros((T.shape[0], 1))))
+            T[-1, -1] = 1
+            T = T + 0.0  # convert -0.0 to 0.0
             return T
-    
+    return T
+
 
 def gomory(filename):
     n, m, b, c, A = readInput(filename)
     T = initialTableau(n, m, b, c, A)
     print(T)
-    status = simplex(T)
+    status, T = simplex(T)
     if status == -1:
         print("The problem is unbounded")
         return
 
     # Check if the solution is integer
     is_integer, sol = check_integer(T)
+
+    # if is_integer:
+    #     print("The solution is integer")
+    #     print("The solution is: ", sol)
+    #     return
+
+    # T = gomoryCut(T)
+    while not is_integer:
+        # f = int(input("Enter row number add gomory cut:"))
+        T = gomoryCut(T)
+        print("Gomory Cut")
+        print(T)
+        status, T = dualSimplex(T)
+        if status == -1:
+            print("The problem is unbounded")
+            return
+        is_integer, sol = check_integer(T)
+
     if is_integer:
         print("The solution is integer")
         print("The solution is: ", sol)
         return
-    
-    T=gomoryCut(T)
 
 
 if __name__ == "__main__":
